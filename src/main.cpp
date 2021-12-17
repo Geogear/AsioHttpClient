@@ -24,15 +24,32 @@ class sticker
 
         std::string to_string()
         {
-            return "sticker with title: " + title + "\nurl: " +
+            return "\nsticker with title: " + title + "\nurl: " +
             url + "\nrating: " + rating + "\nid: " + id +"\n"; 
         }
 };
 
-std::string get_request_string(std::string api_key, std::string search_phrase, int limit);
+struct get_request_params
+{
+    public:
+        std::string api_key;
+        std::string search_phrase;
+        int limit;
+
+        std::string get_request_string()
+        {
+            if (limit > 50 || limit <= 0)
+            {
+                limit = 1;
+            }
+            return "?api_key=" + api_key + "&q=" + search_phrase + "&limit=" + std::to_string(limit);
+        }
+};
+
 std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::streambuf* response);
 void find_and_add_stickers(char *response_data, std::vector<sticker>* vec);
 int count_till_char(const char* string, char until);
+//void set_request_stream(std::ostream request_stream, );
 
 int main(int argc, char **argv)
 {
@@ -58,8 +75,11 @@ int main(int argc, char **argv)
     }
 
     /* Read the api_key. */
-    std::string api_key;
-    my_file >> api_key;
+    
+    struct get_request_params grp;
+    grp.limit = 3;
+    grp.search_phrase = "cheese";
+    my_file >> grp.api_key;
 
     /* Close the file, don't need it anymore. */
     my_file.close();
@@ -79,7 +99,7 @@ int main(int argc, char **argv)
     allow us to treat all data up until the EOF as the content. */
     asio::streambuf request;
     std::ostream request_stream(&request);
-    request_stream << "GET " << path << get_request_string(api_key, "cheese", 1) << " HTTP/1.0\r\n";
+    request_stream << "GET " << path << grp.get_request_string() << " HTTP/1.0\r\n";
     request_stream << "Host: " << server << "\r\n";
     request_stream << "Accept: */*\r\n";
     request_stream << "Connection: close\r\n\r\n";  
@@ -125,12 +145,6 @@ int main(int argc, char **argv)
     if (response.size() > 0)
       std::cout << &response;
 
-    /* Read until EOF, writing data to output as we go. */
-    /*asio::error_code error;
-    while (asio::read(socket, response, asio::transfer_at_least(1), error))
-    {
-        std::cout << &response;
-    }*/
     std::vector<std::vector<sticker>> all_stickers;
     all_stickers.push_back(pull_stickers_from_response(&socket, &response));
 
@@ -140,15 +154,6 @@ int main(int argc, char **argv)
     }
 
     socket.close();
-}
-
-std::string get_request_string(std::string api_key, std::string search_phrase, int limit)
-{
-    if (limit > 50 || limit < 0)
-    {
-        limit = 1;
-    }
-    return "?api_key=" + api_key + "&q=" + search_phrase + "&limit=" + std::to_string(limit);
 }
 
 std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::streambuf* response)
