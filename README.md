@@ -1,5 +1,5 @@
 # Http Client To Get Stickers From Giphy.com
-Done as a testcase for the recruitment of a company. Used c++ with asio library. Built with gcc 6.3.0 using mingw on windows 10.
+Done as a testcase for the recruitment of a company. Used c++ with asio library. Built with gcc 6.3.0 using mingw on windows 10. Pre-built version can be found inside the bin directory.
 
 ## Usage
 .\sticker_client.exe <path-to-api-key-file>, api-key-file must be a text file containing only the api-key on the first line.

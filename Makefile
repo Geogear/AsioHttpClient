@@ -1,4 +1,4 @@
-TARGET = ./sticker_client
+TARGET = ./bin/sticker_client
 
 CC = g++
 CFLAGS = -Wall -g -std=c++11
