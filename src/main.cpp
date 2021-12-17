@@ -169,14 +169,10 @@ int main(int argc, char **argv)
                 asio::read_until(socket, response, "\r\n\r\n");
 
                 /* Process the response headers. */
-                while (std::getline(response_stream, header) && header != "\r");
-                    
-                    /* std::cout << header << "\n"; */
+                while (std::getline(response_stream, header) && header != "\r");                   
 
-                /* Write whatever content we already have to output. */
+                /* Consume whatever content we already have to output. */
                 response.consume(response.size());
-                /*if (response.size() > 0)
-                    std::cout << &response;*/
 
                 all_stickers.push_back(pull_stickers_from_response(&socket, &response));
 
@@ -295,7 +291,7 @@ void display_pages(std::vector<std::vector<sticker>>* all_stickers)
 {
     if (all_stickers->size() == 0)
     {
-        std::cout << "No pages exist.\n";
+        std::cout << "\nNo pages exist.\n";
         return;
     }
 
@@ -307,24 +303,30 @@ void display_pages(std::vector<std::vector<sticker>>* all_stickers)
             break;
         }
 
+        if((selection == 1 && current_page == 0) ||
+        (selection == 2 && current_page == all_stickers->size()-1))
+        {
+            selection = -1;
+        }
+
         switch(selection)
         {
             case 1:
                 --current_page;
-                std::cout << "DISPLAYING PAGE NUMBER " + std::to_string(current_page+1) + "\n";
                 display_sticker_page(&all_stickers->at(current_page));
+                std::cout << "\nDISPLAYING PAGE NUMBER " + std::to_string(current_page+1) + "\n";               
                 break;
             case 2:
                 ++current_page;
-                std::cout << "DISPLAYING PAGE NUMBER " + std::to_string(current_page+1) + "\n";
                 display_sticker_page(&all_stickers->at(current_page));
+                std::cout << "\nDISPLAYING PAGE NUMBER " + std::to_string(current_page+1) + "\n";               
                 break;
             default:
-                std::cout << "Enter a valid option.\n";
+                std::cout << "\nEnter a valid option.\n";
                 break;
         }
 
-        std::cout << "Enter the specified number to select an option:\n";
+        std::cout << "\nEnter the specified number to select an option:\n";
         if(current_page > 0)
         {
             std::cout << "1.Show the previous page.\n";
