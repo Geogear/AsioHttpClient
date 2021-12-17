@@ -55,6 +55,8 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
 void find_and_add_stickers(char *response_data, std::vector<sticker>* vec);
 int count_till_char(const char* string, char until);
 void set_request_stream(std::ostream* request_stream, struct get_request_params grp, std::string path, std::string server);
+void display_pages(std::vector<std::vector<sticker>>* all_stickers);
+void display_sticker_page(std::vector<sticker> *stickers);
 
 int main(int argc, char **argv)
 {
@@ -79,11 +81,10 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /* Read the api_key. */
-    
     struct get_request_params grp;
     grp.limit = 20;
     grp.search_phrase = "sword";
+    /* Read the api_key. */
     my_file >> grp.api_key;
 
     /* Close the file, don't need it anymore. */
@@ -155,6 +156,33 @@ int main(int argc, char **argv)
         std::cout << all_stickers[0][i].to_string();
     }
 
+    std::cout << "Welcome to Giphy Sticker Getter Client\n";
+    int selection = -1;
+    while(1){
+        std::cout << "Enter the specified number to select an option:\n" << "1.Enter a search term to get stickers.\n"
+        << "2.See existing pages\n" << "0.Exit client\n";
+        std::cin >> selection;
+
+        if(selection == 0)
+        {
+            std::cout << "Bye bye.\n";
+            break;
+        }
+
+        switch(selection)
+        {
+            case 1:
+                break;
+            case 2:
+                display_pages(&all_stickers);
+                break;
+            default:
+                std::cout << "Enter a valid option.\n";
+                continue;
+                break;
+        }
+    }
+
     socket.close();
 }
 
@@ -170,18 +198,25 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
     asio::error_code error;
     while (asio::read(*socket, *response, asio::transfer_at_least(1), error))
     {               
+        /* Pull data from streambuf. */
         asio::streambuf::const_buffers_type data = response->data();
-        std::string current(buffers_begin(data), buffers_begin(data) + data.size());       
+        /* Convert it to string. */ 
+        std::string current(buffers_begin(data), buffers_begin(data) + data.size());
+        /* Empty the streambuf. */    
         response->consume(response->size());
 
+        /* Find the starting of sticker data, if it exists in the current context. */   
         place_holder = strstr(&current[0], &frontier_search_term[0]);
 
         if(place_holder != NULL)
         {
+            /* If data is large enough, it is safe to objectify it. */   
             if(strlen(place_holder) >= minimum_whole_data){
                 find_and_add_stickers(place_holder, &vec);
                 continue;
             }
+
+            /* If not large enough, read again. */   
             if(0 == asio::read(*socket, *response, asio::transfer_at_least(1), error))
             {
                 break;
@@ -247,4 +282,60 @@ void set_request_stream(std::ostream* request_stream, struct get_request_params 
     (*request_stream) << "Host: " << server << "\r\n";
     (*request_stream) << "Accept: */*\r\n";
     (*request_stream) << "Connection: close\r\n\r\n";  
+}
+
+
+void display_pages(std::vector<std::vector<sticker>>* all_stickers)
+{
+    if (all_stickers->size() == 0)
+    {
+        std::cout << "No pages exist.\n";
+        return;
+    }
+
+    int current_page = 1, selection = 1;
+    while(1)
+    {
+        if(selection == 0)
+        {
+            break;
+        }
+
+        switch(selection)
+        {
+            case 1:
+                --current_page;
+                std::cout << "DISPLAYING PAGE NUMBER " + std::to_string(current_page+1) + "\n";
+                display_sticker_page(&((*all_stickers)[current_page]));
+                break;
+            case 2:
+                ++current_page;
+                std::cout << "DISPLAYING PAGE NUMBER " + std::to_string(current_page+1) + "\n";
+                display_sticker_page(&((*all_stickers)[current_page]));
+                break;
+            default:
+                std::cout << "Enter a valid option.\n";
+                break;
+        }
+
+        std::cout << "Enter the specified number to select an option:\n";
+        if(current_page > 0)
+        {
+            std::cout << "1.Show the previous page.\n";
+        }
+        if(current_page < all_stickers->size()-1)
+        {
+            std::cout << "2.Show the next page.\n";
+        }
+        std::cout << "0.Exit page viewing\n";
+        std::cin >> selection;
+    }
+}
+
+void display_sticker_page(std::vector<sticker> *stickers)
+{
+    for(int i = 0; i < stickers->size(); ++i)
+    {
+        (*stickers)[i].to_string();
+    }
 }
