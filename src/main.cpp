@@ -5,7 +5,6 @@
 #include <asio.hpp>
 
 using asio::ip::tcp;
-int frontier = 0;
 
 class sticker
 {
@@ -59,8 +58,6 @@ void set_request_stream(std::ostream* request_stream, struct get_request_params 
 
 int main(int argc, char **argv)
 {
-    std::cout << "START\n";
-    fflush(stdout);
     /* Api key file, is a text file where on the first line api key exists. */
     if (argc != 2)
     {
@@ -152,8 +149,6 @@ int main(int argc, char **argv)
 
     std::vector<std::vector<sticker>> all_stickers;
     all_stickers.push_back(pull_stickers_from_response(&socket, &response));
-    std::cout << "CLOSE TO END\n";
-    fflush(stdout);
 
     for(size_t i = 0; i < all_stickers[0].size(); ++i)
     {
@@ -175,33 +170,15 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
     asio::error_code error;
     while (asio::read(*socket, *response, asio::transfer_at_least(1), error))
     {               
-        std::cout << "INSIDE LOOP I - 1\n";
-        fflush(stdout);
         asio::streambuf::const_buffers_type data = response->data();
-        std::cout << "INSIDE LOOP I - 2\n";
-        std::cout << "SIZE: " + std::to_string(data.size()) + "\n";
-        fflush(stdout);
         std::string current(buffers_begin(data), buffers_begin(data) + data.size());       
-        std::cout << "INSIDE LOOP I - 3\n";
-        fflush(stdout);
         response->consume(response->size());
-        std::cout << current;
-        std::cout << "INSIDE LOOP I - 4\n";
-        fflush(stdout);
 
         place_holder = strstr(&current[0], &frontier_search_term[0]);
-        std::cout << "\nPLACE HOLDER\n";
-        if(place_holder != NULL)
-            std::cout << place_holder ;
-        fflush(stdout);
 
         if(place_holder != NULL)
         {
-            std::cout << "\nINSIDE\n";
-            fflush(stdout);
             if(strlen(place_holder) >= minimum_whole_data){
-                std::cout << "\nENOUGH DATA\n";
-                fflush(stdout);
                 find_and_add_stickers(place_holder, &vec);
                 continue;
             }
@@ -209,35 +186,20 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
             {
                 break;
             }
-            std::cout << "\nEXTRA DATA\n";
-            fflush(stdout);
             data = response->data();
-            std::cout << "\nDATA GATHERED\n";
-            fflush(stdout);
             size_t size_to_read = (data.size() > minimum_whole_data) ? minimum_whole_data : data.size();
             std::string tmp(buffers_begin(data), buffers_begin(data) + size_to_read);
-            std::cout << "\nTMP\n";
-            fflush(stdout);
-            std::cout << tmp;
-            fflush(stdout);
             response->consume(response->size());
             current.append(tmp);    
             place_holder = strstr(&current[0], &frontier_search_term[0]);        
             find_and_add_stickers(place_holder, &vec);
-        }
-     
-        std::cout << "INSIDE LOOP I - 5\n";
-        fflush(stdout);
+        }    
     }
-    std::cout << "RETURNS VEC\n";
-    fflush(stdout);
     return vec;         
 }
 
 void find_and_add_stickers(char *response_data, std::vector<sticker>* vec)
 {
-    std::cout << "\nFAAS\n";
-    fflush(stdout);
     std::string search_terms[4] = {"id\":", "url\":", "title\":", "rating\":"};
     std::vector<std::string> properties(4);
     char *found = response_data;
@@ -248,47 +210,24 @@ void find_and_add_stickers(char *response_data, std::vector<sticker>* vec)
 
     for(int i = 0; i < 4; ++i)
     {
-        std::cout << "\nFAAS STRSTR" + std::to_string(i) + "\n";
-        fflush(stdout);
         found = strstr(found, &search_terms[i][0]);
-        std::cout << "\nFAAS CTC" + std::to_string(i) + "\n";
-        fflush(stdout);
         len = count_till_char(found+term_lengths[i], count_till);
         if (len == -1)
         {
-            std::cout << "RETURNED FROM -1 " + std::to_string(i) + "\n";
-            fflush(stdout);
             return;
         }
-        std::cout << "\nFAAS APPEND" + std::to_string(i) + "\n";
-        fflush(stdout);
         properties[i].append(found+term_lengths[i], len);
     }
 
     vec->push_back(sticker(properties[0], properties[1], properties[2], properties[3]));
-    std::cout << "\nFAAS EXIT\n";
-    fflush(stdout);
 }
 
 int count_till_char(const char* string, char until)
 {
     int count = 0;
-    std::cout << "FRONTIER: " + std::to_string(frontier) + "\n";
-    fflush(stdin);
-    if (frontier == 21){
-        std::cout << "HELLO";
-        fflush(stdin);
-    }
     for (; ; ++count)
     {
         /* Unexpected situation. */
-        if (frontier == 21)
-        {
-            std::cout << "count: " + std::to_string(count) + "\n";
-            fflush(stdin);
-            std::cout << string[count];
-            fflush(stdin);
-        }
         if (string[count] == '\0' && until != '\0')
         {
             return -1;
