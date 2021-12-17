@@ -82,8 +82,8 @@ int main(int argc, char **argv)
     }
 
     struct get_request_params grp;
-    grp.limit = 20;
-    grp.search_phrase = "sword";
+    /* grp.limit = 20;
+    grp.search_phrase = "sword"; */
     /* Read the api_key. */
     my_file >> grp.api_key;
 
@@ -97,69 +97,32 @@ int main(int argc, char **argv)
     tcp::resolver::results_type endpoints = resolver.resolve(server, "http");
 
     /* Try each endpoint until we successfully establish a connection. */
-    tcp::socket socket(io_context);
-    asio::connect(socket, endpoints);
+    tcp::socket socket(io_context);  
 
     /* Form the request. We specify the "Connection: close" header so that the
     server will close the socket after transmitting the response. This will
     allow us to treat all data up until the EOF as the content. */
     asio::streambuf request;
     std::ostream request_stream(&request);
-    set_request_stream(&request_stream, grp, path, server);
-    
-    /* Send the request. */
-    asio::write(socket, request);
 
     /* Read the response status line. The response streambuf will automatically
     grow to accommodate the entire line. The growth may be limited by passing
     a maximum size to the streambuf constructor. */
     asio::streambuf response;
-    asio::read_until(socket, response, "\r\n");
-
-    /* Check that response is OK. */
+        
     std::istream response_stream(&response);
-    std::string http_version;
-    response_stream >> http_version;
-    unsigned int status_code;
-    response_stream >> status_code;
+    std::string http_version;   
+    unsigned int status_code;  
     std::string status_message;
-    std::getline(response_stream, status_message);
-    if (!response_stream || http_version.substr(0, 5) != "HTTP/")
-    {
-      std::cout << "Invalid response\n";
-      return 1;
-    }
-    if (status_code != 200)
-    {
-      std::cout << "Response returned with status code " << status_code << status_message << "\n";     
-      return 1;
-    }
-
-    /* Read the response headers, which are terminated by a blank line. */
-    asio::read_until(socket, response, "\r\n\r\n");
-
-    /* Process the response headers. */
-    std::string header;
-    while (std::getline(response_stream, header) && header != "\r")
-      std::cout << header << "\n";
-    std::cout << "\n";
-
-    /* Write whatever content we already have to output. */
-    if (response.size() > 0)
-      std::cout << &response;
+  
+    std::string header;  
 
     std::vector<std::vector<sticker>> all_stickers;
-    all_stickers.push_back(pull_stickers_from_response(&socket, &response));
-
-    for(size_t i = 0; i < all_stickers[0].size(); ++i)
-    {
-        std::cout << all_stickers[0][i].to_string();
-    }
-
-    std::cout << "Welcome to Giphy Sticker Getter Client\n";
+    
+    std::cout << "\n-------Welcome to Giphy Sticker Getter Client-------\n";
     int selection = -1;
     while(1){
-        std::cout << "Enter the specified number to select an option:\n" << "1.Enter a search term to get stickers.\n"
+        std::cout << "\nEnter the specified number to select an option:\n" << "1.Enter a search term to get stickers.\n"
         << "2.See existing pages\n" << "0.Exit client\n";
         std::cin >> selection;
 
@@ -172,6 +135,52 @@ int main(int argc, char **argv)
         switch(selection)
         {
             case 1:
+                std::cout << "Enter search term: ";
+                std::cin >> grp.search_phrase;
+                std::cout << "Enter search limit (between 0 and 50, if invalid client assumes 1 for you.): ";
+                std::cin >> grp.limit;
+
+                asio::connect(socket, endpoints);
+
+                set_request_stream(&request_stream, grp, path, server);
+    
+                /* Send the request. */
+                asio::write(socket, request);
+
+                asio::read_until(socket, response, "\r\n");
+
+                /* Check that response is OK. */
+                response_stream >> http_version;
+                response_stream >> status_code;
+                std::getline(response_stream, status_message);
+
+                if (!response_stream || http_version.substr(0, 5) != "HTTP/")
+                {
+                    std::cout << "Invalid response\n";
+                    return 1;
+                }
+                if (status_code != 200)
+                {
+                    std::cout << "Response returned with status code " << status_code << status_message << "\n";     
+                    return 1;
+                }
+
+                /* Read the response headers, which are terminated by a blank line. */
+                asio::read_until(socket, response, "\r\n\r\n");
+
+                /* Process the response headers. */
+                while (std::getline(response_stream, header) && header != "\r");
+                    
+                    /* std::cout << header << "\n"; */
+
+                /* Write whatever content we already have to output. */
+                response.consume(response.size());
+                /*if (response.size() > 0)
+                    std::cout << &response;*/
+
+                all_stickers.push_back(pull_stickers_from_response(&socket, &response));
+
+                socket.close();
                 break;
             case 2:
                 display_pages(&all_stickers);
@@ -181,9 +190,7 @@ int main(int argc, char **argv)
                 continue;
                 break;
         }
-    }
-
-    socket.close();
+    }    
 }
 
 std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::streambuf* response)
@@ -197,12 +204,12 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
     
     asio::error_code error;
     while (asio::read(*socket, *response, asio::transfer_at_least(1), error))
-    {               
+    {              
         /* Pull data from streambuf. */
         asio::streambuf::const_buffers_type data = response->data();
-        /* Convert it to string. */ 
+        /* Convert it to string. */
         std::string current(buffers_begin(data), buffers_begin(data) + data.size());
-        /* Empty the streambuf. */    
+        /* Empty the streambuf. */
         response->consume(response->size());
 
         /* Find the starting of sticker data, if it exists in the current context. */   
@@ -211,7 +218,7 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
         if(place_holder != NULL)
         {
             /* If data is large enough, it is safe to objectify it. */   
-            if(strlen(place_holder) >= minimum_whole_data){
+            if(strlen(place_holder) >= minimum_whole_data){ 
                 find_and_add_stickers(place_holder, &vec);
                 continue;
             }
@@ -225,8 +232,8 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
             size_t size_to_read = (data.size() > minimum_whole_data) ? minimum_whole_data : data.size();
             std::string tmp(buffers_begin(data), buffers_begin(data) + size_to_read);
             response->consume(response->size());
-            current.append(tmp);    
-            place_holder = strstr(&current[0], &frontier_search_term[0]);        
+            current.append(tmp);
+            place_holder = strstr(&current[0], &frontier_search_term[0]);    
             find_and_add_stickers(place_holder, &vec);
         }    
     }
@@ -284,7 +291,6 @@ void set_request_stream(std::ostream* request_stream, struct get_request_params 
     (*request_stream) << "Connection: close\r\n\r\n";  
 }
 
-
 void display_pages(std::vector<std::vector<sticker>>* all_stickers)
 {
     if (all_stickers->size() == 0)
@@ -293,7 +299,7 @@ void display_pages(std::vector<std::vector<sticker>>* all_stickers)
         return;
     }
 
-    int current_page = 1, selection = 1;
+    size_t current_page = 1, selection = 1;
     while(1)
     {
         if(selection == 0)
@@ -306,12 +312,12 @@ void display_pages(std::vector<std::vector<sticker>>* all_stickers)
             case 1:
                 --current_page;
                 std::cout << "DISPLAYING PAGE NUMBER " + std::to_string(current_page+1) + "\n";
-                display_sticker_page(&((*all_stickers)[current_page]));
+                display_sticker_page(&all_stickers->at(current_page));
                 break;
             case 2:
                 ++current_page;
                 std::cout << "DISPLAYING PAGE NUMBER " + std::to_string(current_page+1) + "\n";
-                display_sticker_page(&((*all_stickers)[current_page]));
+                display_sticker_page(&all_stickers->at(current_page));
                 break;
             default:
                 std::cout << "Enter a valid option.\n";
@@ -334,8 +340,8 @@ void display_pages(std::vector<std::vector<sticker>>* all_stickers)
 
 void display_sticker_page(std::vector<sticker> *stickers)
 {
-    for(int i = 0; i < stickers->size(); ++i)
+    for(size_t i = 0; i < stickers->size(); ++i)
     {
-        (*stickers)[i].to_string();
+        std::cout << stickers->at(i).to_string();
     }
 }
