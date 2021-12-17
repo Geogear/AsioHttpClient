@@ -85,8 +85,8 @@ int main(int argc, char **argv)
     /* Read the api_key. */
     
     struct get_request_params grp;
-    grp.limit = 5;
-    grp.search_phrase = "burger";
+    grp.limit = 20;
+    grp.search_phrase = "sword";
     my_file >> grp.api_key;
 
     /* Close the file, don't need it anymore. */
@@ -179,8 +179,9 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
         fflush(stdout);
         asio::streambuf::const_buffers_type data = response->data();
         std::cout << "INSIDE LOOP I - 2\n";
+        std::cout << "SIZE: " + std::to_string(data.size()) + "\n";
         fflush(stdout);
-        std::string current(buffers_begin(data), buffers_begin(data) + data.size());
+        std::string current(buffers_begin(data), buffers_begin(data) + data.size());       
         std::cout << "INSIDE LOOP I - 3\n";
         fflush(stdout);
         response->consume(response->size());
@@ -211,8 +212,12 @@ std::vector<sticker> pull_stickers_from_response(tcp::socket* socket, asio::stre
             std::cout << "\nEXTRA DATA\n";
             fflush(stdout);
             data = response->data();
-            std::string tmp(buffers_begin(data), buffers_begin(data) + minimum_whole_data);
+            std::cout << "\nDATA GATHERED\n";
+            fflush(stdout);
+            size_t size_to_read = (data.size() > minimum_whole_data) ? minimum_whole_data : data.size();
+            std::string tmp(buffers_begin(data), buffers_begin(data) + size_to_read);
             std::cout << "\nTMP\n";
+            fflush(stdout);
             std::cout << tmp;
             fflush(stdout);
             response->consume(response->size());
